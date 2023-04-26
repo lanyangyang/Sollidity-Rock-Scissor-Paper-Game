@@ -1,0 +1,117 @@
+pragma solidity >=0.4.22 <0.6.0;
+
+contract RockPaperScissorsSimpleGame {
+    enum Choice {
+        Rock, // 0
+        Paper, // 1
+        Scissor // 2
+    }
+
+    bool public isDraw;
+    address public winner;
+    uint256 count;
+
+    struct GamePlayer {
+        address playeraddress;
+        Choice choice;
+        uint256 time;
+    }
+
+    GamePlayer[2] playerlist;
+
+    mapping(address => uint256) users; // mapping users register information
+
+    constructor() public {
+        isDraw = false;
+    }
+
+    function addPlayer() public payable {
+        // one player can only register once
+        require(users[msg.sender] == 0);
+        // only two player can register
+        require(count < 2, "only open for two players");
+        // register the msg.sender address
+        playerlist[count].playeraddress = msg.sender;
+        // player registration times plus 1
+        users[msg.sender]++;
+        count++;
+    }
+
+    function input(Choice _choice) public {
+        // compare the players choices
+        uint8 currentPlayer;
+        // Only registered player can input choice
+        require(
+            registerCheck(msg.sender),
+            "Only available for registered player"
+        );
+
+        if (playerlist[currentPlayer].playeraddress == msg.sender) {
+            // check the current player is the registered player 1
+            /* if current player has already input choice, 
+            he need to wait for other player which means that a player can only input one choice in one time */
+            require(
+                playerlist[currentPlayer].time <= playerlist[currentPlayer + 1].time,
+                "Waiting "
+            );
+            // store the choice, player play time plus 1
+            playerlist[currentPlayer].choice = _choice;
+            playerlist[currentPlayer].time++;
+        } else if (playerlist[currentPlayer + 1].playeraddress == msg.sender) {
+            // check the current player is the registered player 2
+            require(
+                playerlist[currentPlayer + 1].time <= playerlist[currentPlayer].time,
+                "Waiting "
+            );
+            // store the choice, player play time plus 1
+            playerlist[currentPlayer + 1].choice = _choice;
+            playerlist[currentPlayer + 1].time++;
+        }
+        // two players have the same play time which means that they all input their choice
+        if (playerlist[currentPlayer].time == playerlist[currentPlayer + 1].time) {
+            // check the winner
+            winner = winning(playerlist[currentPlayer].choice, playerlist[currentPlayer + 1].choice);
+        }
+    }
+
+    function winning(Choice _a, Choice _b) public returns (address) {
+        address winner_address;
+        // a is player1, b is player2
+        if (_a == _b) {
+            // If the players make the same choice, set isDraw as true
+            isDraw = true;
+            // If the game is draw, set winner address as 0
+            winner_address = 0x0000000000000000000000000000000000000000;
+        } else if (_a == Choice.Rock && _b == Choice.Scissor) {
+            // Rock > Scissor, player 1 win
+            winner_address = playerlist[0].playeraddress;
+        } else if (_a == Choice.Scissor && _b == Choice.Paper) {
+            // Scissor > Paper, player 1 win
+            winner_address = playerlist[0].playeraddress;
+        } else if (_a == Choice.Paper && _b == Choice.Rock) {
+            // Paper > Rock, player 1 win
+            winner_address = playerlist[0].playeraddress;
+        } else if (_b == Choice.Rock && _a == Choice.Scissor) {
+            // Rock > Scissor, player 2 win
+            winner_address = playerlist[1].playeraddress;
+        } else if (_b == Choice.Scissor && _a == Choice.Paper) {
+            // Scissor > Paper, player 2 win
+            winner_address = playerlist[1].playeraddress;
+        } else if (_b == Choice.Paper && _a == Choice.Rock) {
+            // Paper > Rock, player 2 win
+            winner_address = playerlist[1].playeraddress;
+        }
+        return winner_address;
+    }
+
+    function registerCheck(address _address) public view returns (bool) {
+        // Check if the player is registered
+        if (_address == playerlist[0].playeraddress || _address == playerlist[1].playeraddress) {
+            return true;
+        // Not registered player cannot play the game
+        } else {
+            return false;
+        }
+    }
+
+}
